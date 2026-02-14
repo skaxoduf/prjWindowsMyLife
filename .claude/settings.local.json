@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(pyinstaller:*)",
+      "Bash(python -m PyInstaller:*)",
+      "Bash(python create_icon.py:*)"
+    ]
+  }
+}
