@@ -60,18 +60,10 @@ def get_browser_process_name(browser_cmd):
     return process_map.get(browser_cmd, f'{browser_cmd}.exe')
 
 def launch_browser(browser_cmd, urls, section_name):
-    """브라우저 실행 - 이미 실행 중이면 무시"""
+    """브라우저 실행"""
     try:
         if isinstance(urls, str):
             urls = [urls]
-
-        # 브라우저 프로세스 이름 확인
-        process_name = get_browser_process_name(browser_cmd)
-
-        # 이미 실행 중인지 확인
-        if is_process_running(process_name):
-            print(f"   ⏭️  이미 실행 중 (무시)")
-            return True  # 이미 실행 중이므로 성공으로 간주
 
         # 브라우저 플래그
         # --new-window: 새 창으로 열기
@@ -230,6 +222,87 @@ def close_all_browsers():
     else:
         print("   실행 중인 브라우저 없음")
 
+def close_all_programs():
+    """config.ini의 Programs 섹션에 있는 모든 프로그램 종료"""
+    try:
+        config = load_config()
+
+        if not config.has_section('Programs'):
+            return 0
+
+        print("\n🔄 프로그램 종료 중...")
+        closed_count = 0
+
+        # Programs 섹션에서 모든 프로그램 읽기
+        i = 1
+        while True:
+            program_key = f'program{i}'
+            if config.has_option('Programs', program_key):
+                program_path = config.get('Programs', program_key).strip()
+                if program_path and not program_path.startswith('#'):
+                    # 프로세스 이름 추출
+                    process_name = os.path.basename(program_path)
+
+                    try:
+                        result = subprocess.run(
+                            ['taskkill', '/F', '/IM', process_name],
+                            capture_output=True,
+                            text=True
+                        )
+                        if result.returncode == 0:
+                            print(f"   ✓ {process_name} 종료됨")
+                            closed_count += 1
+                    except Exception:
+                        pass
+                i += 1
+            else:
+                break
+
+        if closed_count > 0:
+            print(f"   총 {closed_count}개 프로그램 종료됨")
+        else:
+            print("   실행 중인 프로그램 없음")
+
+        return closed_count
+    except Exception as e:
+        print(f"   ❌ 오류: {e}")
+        return 0
+
+def shutdown_all():
+    """모든 브라우저 및 프로그램 종료"""
+    print("=" * 50)
+    print("프로그램 종료 모드")
+    print("=" * 50)
+
+    # 브라우저 종료
+    close_all_browsers()
+
+    # 프로그램 종료
+    close_all_programs()
+
+    # SSMS 종료
+    print("\n🔄 SSMS 종료 중...")
+    try:
+        result = subprocess.run(
+            ['taskkill', '/F', '/IM', 'Ssms.exe'],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            print("   ✓ SSMS 종료됨")
+        else:
+            print("   실행 중인 SSMS 없음")
+    except Exception:
+        print("   실행 중인 SSMS 없음")
+
+    print("\n" + "=" * 50)
+    print("✅ 모든 프로세스 종료 완료")
+    print("=" * 50)
+
+    # 3초 후 자동 종료
+    print("\n3초 후 자동으로 종료됩니다...")
+    time.sleep(3)
+
 def get_browser_info(section_name):
     """섹션 이름에서 브라우저 타입 추출"""
     # 브라우저 매핑: (브라우저명, 실행명령어, 아이콘)
@@ -339,7 +412,11 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        # 종료 모드 확인
+        if len(sys.argv) > 1 and sys.argv[1] in ['--close', '--shutdown', '-c']:
+            shutdown_all()
+        else:
+            main()
     except Exception as e:
         print(f"\n❌ 예상치 못한 오류 발생: {e}")
         input("\n엔터를 눌러 종료하세요...")
