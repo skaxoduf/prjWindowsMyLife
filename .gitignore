@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# PyInstaller
+build/
+
+# Backups
+*.backup
+
+# IDE
+.vscode/
+.idea/
+
+# Local settings
+.claude/settings.local.json
